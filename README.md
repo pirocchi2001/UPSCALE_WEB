@@ -5,7 +5,7 @@
 - WebGPU が使えればGPUで、使えなければ WASM(CPU)で自動的に動作
 - 倍率: 2倍 / 4倍 / A3・300dpi(いずれも4倍で推論 → 高品質縮小)
 - 輪郭強調(アンシャープマスク)、拡大前後の比較スライダー
-- PNG / JPEG 保存(dpi情報を埋め込み)
+- PNG / JPEG 保存(既定はJPEG品質0.98。dpi情報を埋め込み)
 
 ## 使い方(公開)
 `index.html` と `models/` を GitHub Pages で公開するだけです。ローカルでは `python3 -m http.server` で配信して開きます(`file://` ではモデルを読み込めません)。

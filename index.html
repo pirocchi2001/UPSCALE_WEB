@@ -102,8 +102,8 @@ footer{text-align:center;color:var(--sub);margin:10px 0 40px;font-size:13px}
     <div class="opts">
       <div class="opt"><label class="t" for="model">モデル</label>
         <select id="model">
-          <option value="models/realesrgan-x4plus.onnx">写真向け</option>
           <option value="models/realesrgan-x4plus-anime.onnx">イラスト・文字向け</option>
+          <option value="models/realesrgan-x4plus.onnx">写真向け</option>
           <option value="models/realesr-general-x4v3.onnx">軽量・高速</option>
         </select></div>
       <div class="opt"><label class="t">倍率</label>
@@ -115,8 +115,8 @@ footer{text-align:center;color:var(--sub);margin:10px 0 40px;font-size:13px}
       </div>
       <div class="opt"><label class="t">保存形式</label>
         <div class="seg" id="format">
-          <label><input type="radio" name="format" value="png" checked><span>PNG</span></label>
-          <label><input type="radio" name="format" value="jpg"><span>JPEG</span></label>
+          <label><input type="radio" name="format" value="jpg" checked><span>JPEG</span></label>
+          <label><input type="radio" name="format" value="png"><span>PNG</span></label>
         </div>
       </div>
     </div>
@@ -385,7 +385,7 @@ $('dl').addEventListener('click', e => {
     a.href = URL.createObjectURL(new Blob([data], { type: blob.type }));
     a.download = `${fileName}_hq.${png ? 'png' : 'jpg'}`;
     a.click();
-  }, png ? 'image/png' : 'image/jpeg', 0.95);
+  }, png ? 'image/png' : 'image/jpeg', 0.98);
 });
 const formatVal = () => document.querySelector('input[name=format]:checked').value;
 </script>
