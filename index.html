@@ -2,89 +2,226 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>画像高画質化</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#ffffff">
+<title>高画質化ツール</title>
 <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.webgpu.min.js"></script>
 <style>
-body{font-family:sans-serif;max-width:1000px;margin:20px auto;padding:0 12px}
-#drop{border:2px dashed #888;padding:30px;text-align:center;cursor:pointer}
-#drop.over{background:#eef}
-fieldset{margin:10px 0}
-progress{width:100%}
-#cmp{position:relative;display:none;margin-top:10px;overflow:hidden}
-#cmp img{display:block;width:100%}
-#before{position:absolute;top:0;left:0;height:100%;overflow:hidden;border-right:2px solid red}
-#before img{height:100%;width:auto;max-width:none}
+:root{--red:#dc4852;--yellow:#f4c13a;--teal:#36afbc;--green:#51ac41;--blue:#409edc;--navy:#1b2a49;--ink:#1f2d3d;--sub:#6b7785;--line:#dde3ea;--bg:#ebf0f6}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Hiragino Sans","Yu Gothic","Meiryo",sans-serif;background:var(--bg);color:var(--ink)}
+header{background:#fff;position:relative}
+header::after{content:"";position:absolute;left:0;right:0;bottom:0;height:5px;background:linear-gradient(90deg,var(--red) 0 20%,var(--yellow) 20% 40%,var(--teal) 40% 60%,var(--green) 60% 80%,var(--blue) 80% 100%)}
+.head-inner{max-width:1100px;margin:0 auto;padding:20px 25px 25px;display:flex;justify-content:space-between;align-items:center;gap:20px}
+.brand{display:flex;align-items:center;gap:20px}
+.logo{height:48px;width:auto;display:block}
+.divider{width:1px;height:46px;background:var(--line)}
+h1{margin:0;font-size:24px;font-weight:600;letter-spacing:.02em;white-space:nowrap}
+header p{margin:3px 0 0;font-size:14px;color:var(--sub)}
+.btn-outline{background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:10px;font-weight:700;padding:9px 16px;font-size:14px;cursor:pointer;text-decoration:none;display:inline-block}
+.btn-outline:hover{background:#f4f7fa}
+.btn-dark{background:var(--navy);color:#fff;border:0;border-radius:10px;font-weight:700;padding:14px 22px;font-size:16px;cursor:pointer;transition:opacity .15s,transform .1s;text-decoration:none;display:inline-block;text-align:center}
+.btn-dark:hover:not(:disabled){opacity:.9}.btn-dark:active:not(:disabled){transform:scale(.98)}
+.btn-dark:disabled{opacity:.35;cursor:not-allowed}
+.container{max-width:1100px;margin:28px auto;padding:0 25px;display:grid;gap:18px}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 1px 2px rgba(16,24,40,.05);padding:22px}
+.card h2{margin:0 0 14px;font-size:16px}
+.step{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--navy);color:#fff;font-size:13px;margin-right:8px}
+.drop{border:2px dashed #c5ced8;border-radius:12px;padding:28px 16px;text-align:center;color:var(--sub);cursor:pointer;background:#f7f9fc;transition:background .15s,border-color .15s}
+.drop:hover,.drop.over{background:#eef5fc;border-color:var(--blue)}
+.drop b{display:block;font-size:16px;color:var(--ink);margin-bottom:4px}
+.drop small{font-size:13px}
+.picked{display:flex;gap:16px;align-items:center;margin-top:14px}
+.picked img{max-width:140px;max-height:100px;border-radius:8px;border:1px solid var(--line);background:#fff}
+.picked .meta{font-size:14px;line-height:1.7;min-width:0;word-break:break-all}
+.opts{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.opt label.t{display:block;font-size:13px;font-weight:700;margin-bottom:7px;color:var(--sub)}
+select{width:100%;padding:11px;border:1px solid #c5ced8;border-radius:8px;font-size:15px;background:#fff;color:var(--ink)}
+select:focus{outline:2px solid var(--blue);border-color:var(--blue)}
+.seg{display:flex;border:1px solid #c5ced8;border-radius:8px;overflow:hidden}
+.seg label{flex:1;margin:0}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg span{display:block;text-align:center;padding:11px 6px;font-size:15px;font-weight:700;cursor:pointer;background:#fff;border-right:1px solid #c5ced8}
+.seg label:last-child span{border-right:0}
+.seg input:checked+span{background:var(--navy);color:#fff}
+.seg input:focus-visible+span{outline:3px solid var(--blue);outline-offset:-3px}
+.hint{margin:12px 0 0;font-size:13px;color:var(--sub);line-height:1.7}
+.go{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:18px}
+.est{font-size:14px;color:var(--sub)}
+.bar{height:14px;border-radius:7px;background:#e4e9ef;overflow:hidden}
+.bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--teal),var(--blue));transition:width .3s}
+.bar.indet>i{width:35%;animation:slide 1.2s ease-in-out infinite}
+@keyframes slide{0%{margin-left:-35%}100%{margin-left:100%}}
+.status{margin-top:10px;font-size:14px;font-weight:700}
+.err{color:var(--red);font-size:14px;font-weight:700;margin-top:12px}
+.cmp{position:relative;border-radius:10px;overflow:hidden;background:#222 repeating-conic-gradient(#ccc 0 25%,#fff 0 50%) 0 0/20px 20px;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.cmp img{display:block;width:100%;height:auto;pointer-events:none}
+.cmp .before{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;clip-path:inset(0 50% 0 0)}
+.cmp .line{position:absolute;top:0;bottom:0;width:3px;background:#fff;box-shadow:0 0 6px rgba(0,0,0,.5);left:50%;transform:translateX(-50%);pointer-events:none}
+.cmp .line::after{content:"↔";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:36px;height:36px;border-radius:50%;background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.4);display:grid;place-items:center;font-size:16px;color:var(--navy)}
+.cmp input[type=range]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:ew-resize;margin:0}
+.tag{position:absolute;top:10px;padding:3px 10px;border-radius:999px;background:rgba(27,42,73,.85);color:#fff;font-size:12px;font-weight:700;pointer-events:none}
+.tag.l{left:10px}.tag.r{right:10px}
+.res-meta{display:flex;flex-wrap:wrap;gap:6px 20px;margin:14px 0;font-size:14px;color:var(--sub)}
+.res-actions{display:flex;gap:12px;flex-wrap:wrap}
+.pill{display:inline-block;padding:2px 10px;border-radius:999px;background:var(--navy);color:#fff;font-size:12px;font-weight:700}
+footer{text-align:center;color:var(--sub);margin:10px 0 40px;font-size:13px}
+[hidden]{display:none!important}
+@media(max-width:700px){.logo{height:28px}.divider{height:30px}.brand{gap:12px}h1{font-size:18px}header p{display:none}.head-inner{padding:14px 16px 19px}.container{padding:0 14px;margin:18px auto}.opts{grid-template-columns:1fr;gap:14px}.card{padding:16px}.btn-dark{width:100%}.picked{flex-direction:column;align-items:flex-start}}
+.seg span{white-space:nowrap;padding:11px 4px;font-size:14px}.sharp{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}.sharp input[type=range]{width:100%}.sharp .v{font-weight:700;color:var(--ink)}@media(max-width:700px){.sharp{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<h1>画像高画質化</h1>
-<div id="drop">ここに画像をドロップ、またはクリックして選択</div>
-<input type="file" id="file" accept="image/*" hidden>
-<p id="info"></p>
+<header>
+  <div class="head-inner">
+    <div class="brand">
+      <img class="logo" alt="TOYLO PARK" src="logo-toylopark.png">
+      <div class="divider"></div>
+      <div><h1>高画質化ツール</h1><p>写真やイラストをAIで鮮明に拡大します(画像はこのPCの中だけで処理されます)</p></div>
+    </div>
+  </div>
+</header>
 
-<fieldset><legend>モデル</legend>
-<select id="model">
-<option value="models/realesrgan-x4plus.onnx">写真向け</option>
-<option value="models/realesrgan-x4plus-anime.onnx">イラスト・文字向け</option>
-<option value="models/realesr-general-x4v3.onnx">軽量・高速</option>
-</select></fieldset>
+<main class="container">
+  <section class="card" id="cardPick">
+    <h2><span class="step">1</span>画像を選ぶ</h2>
+    <div class="drop" id="drop" tabindex="0" role="button" aria-label="画像を選ぶ">
+      <b>ここに画像をドロップ、またはクリックして選択</b>
+      <small>PNG・JPEG・WebP / 30MBまで(貼り付けも可)</small>
+    </div>
+    <input type="file" id="file" accept="image/png,image/jpeg,image/webp" hidden>
+    <div class="picked" id="picked" hidden>
+      <img id="thumb" alt="選んだ画像">
+      <div class="meta" id="meta"></div>
+    </div>
+    <div class="err" id="errPick" hidden></div>
+  </section>
 
-<fieldset><legend>拡大</legend>
-<label><input type="radio" name="scale" value="2" checked>2倍</label>
-<label><input type="radio" name="scale" value="4">4倍</label>
-<label><input type="radio" name="scale" value="a3">A3・300dpi</label>
-</fieldset>
+  <section class="card" id="cardOpt">
+    <h2><span class="step">2</span>設定</h2>
+    <div class="opts">
+      <div class="opt"><label class="t" for="model">モデル</label>
+        <select id="model">
+          <option value="models/realesrgan-x4plus.onnx">写真向け</option>
+          <option value="models/realesrgan-x4plus-anime.onnx">イラスト・文字向け</option>
+          <option value="models/realesr-general-x4v3.onnx">軽量・高速</option>
+        </select></div>
+      <div class="opt"><label class="t">倍率</label>
+        <div class="seg" id="scale">
+          <label><input type="radio" name="scale" value="2" checked><span>2倍</span></label>
+          <label><input type="radio" name="scale" value="4"><span>4倍</span></label>
+          <label><input type="radio" name="scale" value="a3"><span>A3・300dpi</span></label>
+        </div>
+      </div>
+      <div class="opt"><label class="t">保存形式</label>
+        <div class="seg" id="format">
+          <label><input type="radio" name="format" value="png" checked><span>PNG</span></label>
+          <label><input type="radio" name="format" value="jpg"><span>JPEG</span></label>
+        </div>
+      </div>
+    </div>
+    <div class="sharp">
+      <div class="opt"><label class="t" for="amount">輪郭強調 強さ <span class="v" id="amountV">0</span></label>
+        <input type="range" id="amount" min="0" max="2" step="0.1" value="0"></div>
+      <div class="opt"><label class="t" for="radius">輪郭強調 半径 <span class="v"><span id="radiusV">1</span>px</span></label>
+        <input type="range" id="radius" min="0.5" max="5" step="0.5" value="1"></div>
+    </div>
+    <p class="hint">文字・バーコード・QRコードは形が変わることがあります。正確さが必要な画像には向きません。輪郭強調は結果が出たあとも調整できます。</p>
+    <div class="go">
+      <button class="btn-dark" id="run" type="button" disabled>高画質化する</button>
+      <span class="est" id="est"></span>
+    </div>
+    <div class="err" id="errRun" hidden></div>
+  </section>
 
-<button id="run" disabled>高画質化する</button>
-<progress id="prog" value="0" max="1"></progress>
-<p id="status"></p>
+  <section class="card" id="cardProg" hidden>
+    <h2><span class="step">3</span>処理中</h2>
+    <div class="bar" id="bar"><i></i></div>
+    <div class="status" id="status"></div>
+  </section>
 
-<fieldset><legend>輪郭強調</legend>
-強さ <input type="range" id="amount" min="0" max="2" step="0.1" value="0"> <span id="amountV">0</span>
-半径 <input type="range" id="radius" min="0.5" max="5" step="0.5" value="1"> <span id="radiusV">1</span>px
-</fieldset>
-
-<div id="cmp"><img id="afterImg"><div id="before"><img id="beforeImg"></div></div>
-<input type="range" id="split" min="0" max="100" value="50" style="width:100%;display:none">
-
-<fieldset><legend>保存</legend>
-<select id="fmt"><option value="png">PNG</option><option value="jpg">JPEG(高品質)</option></select>
-<button id="save" disabled>ダウンロード</button>
-</fieldset>
+  <section class="card" id="cardRes" hidden>
+    <h2><span class="step">✓</span>できました <span class="pill" id="resPill"></span></h2>
+    <div class="cmp" id="cmp">
+      <img id="after" alt="高画質化後">
+      <img class="before" id="before" alt="元の画像">
+      <div class="line" id="line"></div>
+      <span class="tag l">元の画像</span><span class="tag r">高画質化後</span>
+      <input type="range" id="slider" min="0" max="100" value="50" aria-label="元の画像と高画質化後の比較">
+    </div>
+    <div class="res-meta" id="resMeta"></div>
+    <div class="res-actions">
+      <a class="btn-dark" id="dl" href="#">保存する</a>
+      <button class="btn-outline" id="again" type="button">別の画像を処理する</button>
+    </div>
+    <p class="hint">画像はサーバーに送信されません。必ず保存してください。</p>
+  </section>
+  <footer>TOYLO PARK 作業ツール</footer>
+</main>
 
 <script>
 const A3_LONG_INCH = 420 / 25.4;
 const TILE = 128, PAD = 8, S = 4;
 const $ = id => document.getElementById(id);
-let srcImg = null, baseCanvas = null, resultCanvas = null, outDpi = 0, fileName = 'image';
+const fmtSize = n => n >= 1048576 ? (n/1048576).toFixed(1)+'MB' : Math.max(1,Math.round(n/1024))+'KB';
+const MAX_UPLOAD_MB = 30, MAX_OUT_MP = 300;  // 出力がこれを超える倍率は選べない(ブラウザのキャンバス上限対策)
+let srcImg = null, srcFile = null, objUrl = null, busy = false, baseCanvas = null, resultCanvas = null, outDpi = 0, fileName = 'image', outInfo = null;
 const sessions = {};
 
-// 画像の読み込み
-$('drop').onclick = () => $('file').click();
-$('drop').ondragover = e => { e.preventDefault(); $('drop').classList.add('over'); };
-$('drop').ondragleave = () => $('drop').classList.remove('over');
-$('drop').ondrop = e => { e.preventDefault(); $('drop').classList.remove('over'); load(e.dataTransfer.files[0]); };
-$('file').onchange = e => load(e.target.files[0]);
+// ---- 画像の選択 ----
+const drop = $('drop'), input = $('file');
+drop.addEventListener('click', () => input.click());
+drop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } });
+['dragenter','dragover'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) load(f); });
+input.addEventListener('change', () => { if (input.files[0]) load(input.files[0]); });
+window.addEventListener('paste', e => { const f = [...(e.clipboardData?.files || [])].find(x => x.type.startsWith('image/')); if (f && !busy) load(f); });
+
+function showErr(id, msg) { const el = $(id); el.textContent = msg || ''; el.hidden = !msg; }
 
 function load(file) {
-  if (!file) return;
-  fileName = file.name.replace(/\.[^.]+$/, '');
+  showErr('errPick'); showErr('errRun');
+  if (!/^image\/(png|jpeg|webp)$/.test(file.type)) return showErr('errPick', 'PNG・JPEG・WebP の画像を選んでください');
+  if (file.size > MAX_UPLOAD_MB * 1048576) return showErr('errPick', `ファイルは${MAX_UPLOAD_MB}MB以内にしてください(${fmtSize(file.size)})`);
+  if (objUrl) URL.revokeObjectURL(objUrl);
+  const url = URL.createObjectURL(file);
   const img = new Image();
   img.onload = () => {
-    srcImg = img;
+    objUrl = url; srcImg = img; srcFile = file;
+    fileName = (file.name || 'image').replace(/\.[^.]+$/, '');
     const dpi = Math.max(img.width, img.height) / A3_LONG_INCH;
-    $('info').textContent = `${img.width}×${img.height}px(A3換算 約${Math.round(dpi)}dpi)`;
-    $('beforeImg').src = img.src;
-    $('run').disabled = false;
+    $('thumb').src = url; $('picked').hidden = false;
+    $('meta').innerHTML = '';
+    const n = document.createElement('div'); n.textContent = file.name || '貼り付けた画像';
+    const s = document.createElement('div'); s.textContent = `${img.width} × ${img.height} px / ${fmtSize(file.size)}(A3換算 約${Math.round(dpi)}dpi)`;
+    $('meta').append(n, s);
+    updateEst();
   };
-  img.src = URL.createObjectURL(file);
+  img.onerror = () => { URL.revokeObjectURL(url); srcImg = null; $('run').disabled = true; showErr('errPick', '画像を読み込めませんでした'); };
+  img.src = url;
 }
+
+const scaleVal = () => document.querySelector('input[name=scale]:checked').value;
+function outSize() {
+  const m = scaleVal(), W = srcImg.width, H = srcImg.height;
+  if (m === 'a3') return H >= W ? [3508, 4961] : [4961, 3508];
+  return [W * m, H * m];
+}
+function updateEst() {
+  if (!srcImg) { $('est').textContent = ''; return; }
+  const [w, h] = outSize();
+  const over = Math.max(srcImg.width, srcImg.height) * 4 * Math.min(srcImg.width, srcImg.height) * 4 > MAX_OUT_MP * 1e6;
+  $('est').textContent = `出力: ${w} × ${h} px` + (over ? '(元画像が大きすぎます。小さい画像を選んでください)' : '');
+  $('est').style.color = over ? 'var(--red)' : '';
+  $('run').disabled = over || busy;
+}
+document.querySelectorAll('input[name=scale]').forEach(r => r.addEventListener('change', updateEst));
 
 // モデルの読み込み(一度読んだら再利用)
 async function getSession(path) {
   if (sessions[path]) return sessions[path];
-  $('status').textContent = 'モデルを読み込み中…';
+  setBar(0, true); $('status').textContent = 'モデルを読み込み中…(初回のみ時間がかかります)';
   let s;
   try { s = await ort.InferenceSession.create(path, { executionProviders: ['webgpu'] }); }
   catch { s = await ort.InferenceSession.create(path, { executionProviders: ['wasm'] }); }
@@ -120,9 +257,10 @@ async function upscale4(img, session) {
       out.data[d] = o[q] * 255; out.data[d + 1] = o[op + q] * 255; out.data[d + 2] = o[2 * op + q] * 255; out.data[d + 3] = 255;
     }
     done++;
-    $('prog').value = done / total;
+    setBar(Math.round(done / total * 100), false);
     const remain = (performance.now() - t0) / done * (total - done) / 1000;
-    $('status').textContent = `処理中 ${done}/${total}(残り約${Math.ceil(remain)}秒)`;
+    $('status').textContent = `高画質化しています… ${done}/${total}(残り約${Math.ceil(remain)}秒)`;
+    await new Promise(r => setTimeout(r)); // 画面を更新させる
   }
   const oc = document.createElement('canvas'); oc.width = OW; oc.height = OH;
   oc.getContext('2d').putImageData(out, 0, 0);
@@ -156,20 +294,26 @@ function sharpen(canvas, amount, radius) {
 function applySharpen() {
   if (!baseCanvas) return;
   resultCanvas = sharpen(baseCanvas, +$('amount').value, +$('radius').value);
-  resultCanvas.toBlob(b => { $('afterImg').src = URL.createObjectURL(b); updateSplit(); });
+  resultCanvas.toBlob(b => { const old = $('after').src; $('after').src = URL.createObjectURL(b); if (old.startsWith('blob:')) URL.revokeObjectURL(old); });
 }
 ['amount', 'radius'].forEach(id => {
   $(id).oninput = () => $(id + 'V').textContent = $(id).value;
   $(id).onchange = applySharpen;
 });
 
-// 実行
+// ---- 実行 ----
+function setBar(p, indet) { $('bar').classList.toggle('indet', indet); $('bar').firstElementChild.style.width = indet ? '' : p + '%'; }
+function setBusy(b) { busy = b; $('run').disabled = b || !srcImg; $('model').disabled = b; }
+
 $('run').onclick = async () => {
-  $('run').disabled = true; $('save').disabled = true;
+  if (!srcImg || busy) return;
+  showErr('errRun'); $('cardRes').hidden = true; $('cardProg').hidden = false;
+  setBusy(true); setBar(0, true);
+  const t0 = performance.now();
   try {
     const session = await getSession($('model').value);
     const up = await upscale4(srcImg, session);
-    const mode = document.querySelector('input[name=scale]:checked').value;
+    const mode = scaleVal();
     const srcDpi = Math.max(srcImg.width, srcImg.height) / A3_LONG_INCH;
     if (mode === '4') { baseCanvas = up; outDpi = srcDpi * 4; }
     else if (mode === '2') { baseCanvas = resize(up, srcImg.width * 2, srcImg.height * 2); outDpi = srcDpi * 2; }
@@ -178,24 +322,31 @@ $('run').onclick = async () => {
       baseCanvas = portrait ? resize(up, 3508, 4961) : resize(up, 4961, 3508);
       outDpi = 300;
     }
+    outInfo = { seconds: Math.round((performance.now() - t0) / 1000) };
     applySharpen();
-    $('cmp').style.display = 'block'; $('split').style.display = 'block';
-    $('status').textContent = `完了:${baseCanvas.width}×${baseCanvas.height}px(約${Math.round(outDpi)}dpi)`;
-    $('save').disabled = false;
+    $('cardProg').hidden = true;
+    $('resPill').textContent = `${srcImg.width}×${srcImg.height} → ${baseCanvas.width}×${baseCanvas.height}`;
+    $('resMeta').innerHTML = '';
+    for (const t of [`約${Math.round(outDpi)}dpi`, `処理時間 ${outInfo.seconds}秒`]) { const s = document.createElement('span'); s.textContent = t; $('resMeta').append(s); }
+    $('before').src = objUrl;
+    $('slider').value = 50; setSplit(50);
+    $('cardRes').hidden = false;
+    $('cardRes').scrollIntoView({ behavior: 'smooth', block: 'start' });
   } catch (e) {
-    $('status').textContent = 'エラー:' + e.message;
+    $('cardProg').hidden = true;
+    showErr('errRun', 'エラー:' + e.message);
   }
-  $('run').disabled = false;
+  setBusy(false); updateEst();
 };
 
 // 比較スライダー
-function updateSplit() {
-  const p = $('split').value;
-  $('before').style.width = p + '%';
-  $('beforeImg').style.width = $('cmp').clientWidth + 'px';
-}
-$('split').oninput = updateSplit;
-window.onresize = updateSplit;
+function setSplit(v) { $('before').style.clipPath = `inset(0 ${100 - v}% 0 0)`; $('line').style.left = v + '%'; }
+$('slider').addEventListener('input', e => setSplit(e.target.value));
+
+$('again').addEventListener('click', () => {
+  $('cardRes').hidden = true; $('picked').hidden = true; srcImg = null; input.value = '';
+  $('run').disabled = true; $('est').textContent = ''; window.scrollTo({ top: 0, behavior: 'smooth' });
+});
 
 // dpi情報の書き込み
 const crcTable = Array.from({ length: 256 }, (_, n) => {
@@ -224,8 +375,9 @@ function jpgWithDpi(buf, dpi) {
 }
 
 // 保存
-$('save').onclick = () => {
-  const png = $('fmt').value === 'png';
+$('dl').addEventListener('click', e => {
+  e.preventDefault();
+  const png = formatVal() === 'png';
   resultCanvas.toBlob(async blob => {
     const buf = await blob.arrayBuffer();
     const data = png ? pngWithDpi(buf, outDpi) : jpgWithDpi(buf, outDpi);
@@ -234,7 +386,8 @@ $('save').onclick = () => {
     a.download = `${fileName}_hq.${png ? 'png' : 'jpg'}`;
     a.click();
   }, png ? 'image/png' : 'image/jpeg', 0.95);
-};
+});
+const formatVal = () => document.querySelector('input[name=format]:checked').value;
 </script>
 </body>
 </html>
