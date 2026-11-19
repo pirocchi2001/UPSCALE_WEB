@@ -6,7 +6,7 @@ const b = await chromium.launch({ executablePath: '/Applications/Google Chrome.a
 const p = await b.newPage({ acceptDownloads: true });
 if (process.env.NOGPU) await p.addInitScript(() => { Object.defineProperty(navigator, 'gpu', { value: undefined }); });
 p.on('pageerror', e => console.log('PAGEERR', e.message));
-await p.goto('http://localhost:8765/index.html');
+await p.goto((process.env.URL || 'http://localhost:8765/index.html'));
 console.log('webgpu:', await p.evaluate(() => !!navigator.gpu));
 await p.setInputFiles('#file', img);
 await p.waitForFunction(() => !document.getElementById('run').disabled);
