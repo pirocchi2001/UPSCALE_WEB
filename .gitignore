@@ -1,0 +1,6 @@
+.venv/
+weights/
+node_modules/
+tools/e2e/out_*
+__pycache__/
+.DS_Store
